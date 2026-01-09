@@ -206,7 +206,7 @@
 
 // Cambia la función drawCard para que solo dibuje un serial por hoja
 function drawCard(context, serial, d, s) {
-    // Serial único para la hoja
+    // Serial único para la hoja completa
     context.fillStyle = s.colorS;
     context.font = `bold ${s.sizeS}px ${s.font}`;
     context.textAlign = "left";
@@ -241,12 +241,12 @@ async function downloadPDF() {
         font: document.getElementById('fontFamily').value
     };
     
-    let serialCounter = 1; // Contador de seriales
+    let serialCounter = 1; // Contador de seriales para la hoja
     for (let p = 0; p < pages; p++) {
         ctx.drawImage(baseImage, 0, 0);
-        for (let i = 1; i <= 4; i++) {
-            drawRealCard(ctx, serialCounter++, cardsData[i], styles); // Pasa el contador como serial
-        }
+        // Solo se dibuja un serial para la hoja completa
+        drawRealCard(ctx, serialCounter, cardsData[1], styles); // Usar el mismo serial para todas las cartas de la hoja
+        serialCounter++; // Incrementar el serial para la próxima hoja
         const data = canvas.toDataURL('image/jpeg', 0.8);
         if (p > 0) pdf.addPage([baseImage.width, baseImage.height]);
         pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
@@ -276,6 +276,7 @@ function drawRealCard(context, serial, d, s) {
         }
     }
 }
+
 
 </script>
 </body>
