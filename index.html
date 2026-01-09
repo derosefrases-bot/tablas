@@ -205,14 +205,7 @@
     }
 
 // Cambia la función drawCard para que solo dibuje un serial por hoja
-function drawCard(context, serial, d, s) {
-    // Serial único para la hoja completa
-    context.fillStyle = s.colorS;
-    context.font = `bold ${s.sizeS}px ${s.font}`;
-    context.textAlign = "left";
-    context.textBaseline = "alphabetic";
-    context.fillText("T#" + serial.toString().padStart(3, '0'), d.serX, d.serY); // Cambiado a T#
-
+function drawCard(context, d, s) {
     // Números
     context.fillStyle = s.colorN;
     context.font = `bold ${s.sizeN}px ${s.font}`;
@@ -221,13 +214,14 @@ function drawCard(context, serial, d, s) {
 
     for (let c = 0; c < 5; c++) {
         for (let r = 0; r < 5; r++) {
-            if (c === 2 && r === 2) continue;
+            if (c === 2 && r === 2) continue; // Espacio libre
             const px = d.posX + (c * d.cellW) + (d.cellW / 2);
             const py = d.posY + (r * d.cellH) + (d.cellH / 2);
             context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
         }
     }
 }
+
     // Modifica la función downloadPDF para que pase el serial correcto
 async function downloadPDF() {
     const { jsPDF } = window.jspdf;
@@ -256,25 +250,14 @@ async function downloadPDF() {
 
   // Cambia la función drawRealCard para que solo dibuje un serial por hoja
 function drawRealCard(context, serial, d, s) {
+    // Serial único para la hoja completa
     context.fillStyle = s.colorS;
     context.font = `bold ${s.sizeS}px ${s.font}`;
     context.textAlign = "left";
-    context.fillText("T#" + serial.toString().padStart(3, '0'), d.serX, d.serY); // Cambiado a T#
+    context.fillText("T#" + serial.toString().padStart(3, '0'), d.serX, d.serY); // Serial solo para la hoja
 
-    context.fillStyle = s.colorN;
-    context.font = `bold ${s.sizeN}px ${s.font}`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-
-    for (let c = 0; c < 5; c++) {
-        let nums = Array.from({length: 15}, (_, i) => i + (c*15) + 1).sort(() => Math.random() - 0.5).slice(0, 5);
-        for (let r = 0; r < 5; r++) {
-            if (c === 2 && r === 2) continue;
-            const px = d.posX + (c * d.cellW) + (d.cellW / 2);
-            const py = d.posY + (r * d.cellH) + (d.cellH / 2);
-            context.fillText(nums[r], px, py);
-        }
-    }
+    // Llama a drawCard para dibujar los números
+    drawCard(context, d, s);
 }
 
 
