@@ -96,12 +96,13 @@
     let currentEditingCard = 1;
 
     // Estructura de datos para las 4 cartas
-    let cardsData = {
-        1: { posX: 44,  posY: 510, serX: 135, serY: 270, cellW: 160, cellH: 160 },
-        2: { posX: 934, posY: 510, serX: 1025, serY: 270, cellW: 160, cellH: 160 },
-        3: { posX: 44,  posY: 1690, serX: 135, serY: 1450, cellW: 160, cellH: 160 },
-        4: { posX: 934, posY: 1690, serX: 1025, serY: 1450, cellW: 160, cellH: 160 }
-    };
+let cardsData = {
+    1: { posX: 44,  posY: 510, serX: 135, serY: 270, cellW: 160, cellH: 160 },
+    2: { posX: 934, posY: 510, serX: 1025, serY: 270, cellW: 160, cellH: 160 },
+    3: { posX: 44,  posY: 1690, serX: 135, serY: 1450, cellW: 160, cellH: 160 },
+    4: { posX: 934, posY: 1690, serX: 1025, serY: 1450, cellW: 160, cellH: 160 }
+};
+
 
     window.onload = () => {
         const saved = localStorage.getItem('bingoSettingsIndividual');
@@ -186,24 +187,38 @@
         reader.readAsArrayBuffer(file);
     };
 
-    function updatePreview() {
-        if (!isImageLoaded) return;
-        saveToStorage();
-        ctx.drawImage(baseImage, 0, 0);
-        
-        const styles = {
-            colorN: document.getElementById('colorNum').value,
-            colorS: document.getElementById('colorSerial').value,
-            sizeN: parseInt(document.getElementById('sizeNum').value),
-            sizeS: parseInt(document.getElementById('sizeSerial').value),
-            font: document.getElementById('fontFamily').value
-        };
+   function updatePreview() {
+    if (!isImageLoaded) return;
+    saveToStorage();
+    ctx.drawImage(baseImage, 0, 0);
+    
+    const styles = {
+        colorN: document.getElementById('colorNum').value,
+        colorS: document.getElementById('colorSerial').value,
+        sizeN: parseInt(document.getElementById('sizeNum').value),
+        sizeS: parseInt(document.getElementById('sizeSerial').value),
+        font: document.getElementById('fontFamily').value
+    };
 
-        for (let i = 1; i <= 4; i++) {
-            drawCard(ctx, i, cardsData[i], styles);
-        }
+    // Dibuja todas las cartas
+    for (let i = 1; i <= 4; i++) {
+        drawCard(ctx, cardsData[i], styles);
     }
+}
 
+function updateSerialPosition() {
+    const serX = parseInt(document.getElementById('serX').value);
+    const serY = parseInt(document.getElementById('serY').value);
+    cardsData[1].serX = serX; // Actualiza la posición del serial en la hoja
+    cardsData[1].serY = serY; // Actualiza la posición del serial en la hoja
+    updatePreview(); // Actualiza la vista previa
+}
+
+// Asegúrate de que los inputs para la posición del serial estén conectados
+document.getElementById('serX').oninput = updateSerialPosition;
+document.getElementById('serY').oninput = updateSerialPosition;
+
+    
 // Cambia la función drawCard para que solo dibuje un serial por hoja
 function drawCard(context, d, s) {
     // Números
@@ -221,6 +236,7 @@ function drawCard(context, d, s) {
         }
     }
 }
+
 
     // Modifica la función downloadPDF para que pase el serial correcto
 async function downloadPDF() {
@@ -247,7 +263,6 @@ async function downloadPDF() {
     }
     pdf.save("Bingo_Majo_Manual.pdf");
 }
-
   // Cambia la función drawRealCard para que solo dibuje un serial por hoja
 function drawRealCard(context, serial, d, s) {
     // Serial único para la hoja completa
