@@ -63,13 +63,14 @@
 
     <div id="cardEditor">
         <div class="control-group">
-            <label id="cardLabel">Ajustando Carta #1</label>
-            <div class="pos-grid">
-                <div><label>X Números:</label><input type="number" id="posX" oninput="updateCardData()"></div>
-                <div><label>Y Números:</label><input type="number" id="posY" oninput="updateCardData()"></div>
-                <div><label>X Serial:</label><input type="number" id="serX" oninput="updateCardData()"></div>
-                <div><label>Y Serial:</label><input type="number" id="serY" oninput="updateCardData()"></div>
-            </div>
+    <label>Serial:</label>
+    <input type="text" id="serialText" value="T#001">
+    <div class="pos-grid">
+        <div><label>X Serial:</label><input type="number" id="serialX" value="10"></div>
+        <div><label>Y Serial:</label><input type="number" id="serialY" value="20"></div>
+    </div>
+    <button onclick="updateSerial()">Actualizar Serial</button>
+</div>
             <div class="pos-grid" style="margin-top:10px">
                 <div><label>Ancho Celda:</label><input type="number" id="cellW" oninput="updateCardData()"></div>
                 <div><label>Alto Celda:</label><input type="number" id="cellH" oninput="updateCardData()"></div>
@@ -186,94 +187,110 @@
         reader.readAsArrayBuffer(file);
     };
 
-    function updatePreview() {
-        if (!isImageLoaded) return;
-        saveToStorage();
-        ctx.drawImage(baseImage, 0, 0);
-        
-        const styles = {
-            colorN: document.getElementById('colorNum').value,
-            colorS: document.getElementById('colorSerial').value,
-            sizeN: parseInt(document.getElementById('sizeNum').value),
-            sizeS: parseInt(document.getElementById('sizeSerial').value),
-            font: document.getElementById('fontFamily').value
-        };
+   let serialText = "T#001";
+let serialX = 10;
+let serialY = 20;
 
-        for (let i = 1; i <= 4; i++) {
-            drawCard(ctx, i, cardsData[i], styles);
-        }
+function updateSerial() {
+    serialText = document.getElementById('serialText').value;
+    serialX = parseInt(document.getElementById('serialX').value);
+    serialY = parseInt(document.getElementById('serialY').value);
+    updatePreview();
+}
+    
+   function updatePreview() {
+    if (!isImageLoaded) return;
+    saveToStorage();
+    ctx.drawImage(baseImage, 0, 0);
+    
+    const styles = {
+        colorN: document.getElementById('colorNum').value,
+        colorS: document.getElementById('colorSerial').value,
+        sizeN: parseInt(document.getElementById('sizeNum').value),
+        sizeS: parseInt(document.getElementById('sizeSerial').value),
+        font: document.getElementById('fontFamily').value
+    };
+
+    // Agregar serial
+    ctx.fillStyle = styles.colorS;
+    ctx.font = `bold ${styles.sizeS}px ${styles.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(serialText, serialX, serialY);
+
+    for (let i = 1; i <= 4; i++) {
+        drawCard(ctx, i, cardsData[i], styles);
     }
+}
 
     function drawCard(context, num, d, s) {
-        // Serial
-        context.fillStyle = s.colorS;
-        context.font = `bold ${s.sizeS}px ${s.font}`;
-        context.textAlign = "left";
-        context.textBaseline = "alphabetic";
-        context.fillText("#" + num.toString().padStart(3, '0'), d.serX, d.serY);
+    // Números
+    context.fillStyle = s.colorN;
+    context.font = `bold ${s.sizeN}px ${s.font}`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
 
-        // Números
-        context.fillStyle = s.colorN;
-        context.font = `bold ${s.sizeN}px ${s.font}`;
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-
-        for (let c = 0; c < 5; c++) {
-            for (let r = 0; r < 5; r++) {
-                if (c === 2 && r === 2) continue;
-                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
-                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
-                context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
-            }
+    for (let c = 0; c < 5; c++) {
+        for (let r = 0; r < 5; r++) {
+            if (c === 2 && r === 2) continue;
+            const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+            const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+            context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
         }
     }
+}
 
-    async function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
-        const pages = parseInt(document.getElementById('pageCount').value);
-        const styles = {
-            colorN: document.getElementById('colorNum').value,
-            colorS: document.getElementById('colorSerial').value,
-            sizeN: parseInt(document.getElementById('sizeNum').value),
-            sizeS: parseInt(document.getElementById('sizeSerial').value),
-            font: document.getElementById('fontFamily').value
-        };
+  async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
+    const pages = parseInt(document.getElementById('pageCount').value);
+    const styles = {
+        colorN: document.getElementById('colorNum').value,
+        colorS: document.getElementById('colorSerial').value,
+        sizeN: parseInt(document.getElementById('sizeNum').value),
+        sizeS: parseInt(document.getElementById('sizeSerial').value),
+        font: document.getElementById('fontFamily').value
+    };
+    
+    let serialCounter = 1;
+    for (let p = 0; p < pages; p++) {
+        ctx.drawImage(baseImage, 0, 0);
         
-        let serialCounter = 1;
-        for (let p = 0; p < pages; p++) {
-            ctx.drawImage(baseImage, 0, 0);
-            for (let i = 1; i <= 4; i++) {
-                drawRealCard(ctx, serialCounter++, cardsData[i], styles);
-            }
-            const data = canvas.toDataURL('image/jpeg', 0.8);
-            if (p > 0) pdf.addPage([baseImage.width, baseImage.height]);
-            pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
+        // Agregar serial
+        ctx.fillStyle = styles.colorS;
+        ctx.font = `bold ${styles.sizeS}px ${styles.font}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(`T#${serialCounter.toString().padStart(3, '0')}`, serialX, serialY);
+
+        for (let i = 1; i <= 4; i++) {
+            drawRealCard(ctx, cardsData[i], styles);
         }
-        pdf.save("Bingo_Majo_Manual.pdf");
+        serialCounter++;
+
+        const data = canvas.toDataURL('image/jpeg', 0.8);
+        if (p > 0) pdf.addPage([baseImage.width, baseImage.height]);
+        pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
     }
+    pdf.save("Bingo_Majo_Manual.pdf");
+}
 
-    function drawRealCard(context, serial, d, s) {
-        context.fillStyle = s.colorS;
-        context.font = `bold ${s.sizeS}px ${s.font}`;
-        context.textAlign = "left";
-        context.fillText("#" + serial.toString().padStart(3, '0'), d.serX, d.serY);
+    function drawRealCard(context, d, s) {
+    context.fillStyle = s.colorN;
+    context.font = `bold ${s.sizeN}px ${s.font}`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
 
-        context.fillStyle = s.colorN;
-        context.font = `bold ${s.sizeN}px ${s.font}`;
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-
-        for (let c = 0; c < 5; c++) {
-            let nums = Array.from({length: 15}, (_, i) => i + (c*15) + 1).sort(() => Math.random() - 0.5).slice(0, 5);
-            for (let r = 0; r < 5; r++) {
-                if (c === 2 && r === 2) continue;
-                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
-                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
-                context.fillText(nums[r], px, py);
-            }
+    for (let c = 0; c < 5; c++) {
+        let nums = Array.from({length: 15}, (_, i) => i + (c*15) + 1).sort(() => Math.random() - 0.5).slice(0, 5);
+        for (let r = 0; r < 5; r++) {
+            if (c === 2 && r === 2) continue;
+            const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+            const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+            context.fillText(nums[r], px, py);
         }
     }
+}
 </script>
 </body>
 </html>
