@@ -97,14 +97,13 @@
 
     // Estructura de datos para las 4 cartas
 let cardsData = {
-    1: { posX: 44,  posY: 510, serX: 135, serY: 270, cellW: 160, cellH: 160 },
-    2: { posX: 934, posY: 510, serX: 1025, serY: 270, cellW: 160, cellH: 160 },
-    3: { posX: 44,  posY: 1690, serX: 135, serY: 1450, cellW: 160, cellH: 160 },
-    4: { posX: 934, posY: 1690, serX: 1025, serY: 1450, cellW: 160, cellH: 160 }
-};
+        1: { posX: 44,  posY: 510, serX: 135, serY: 270, cellW: 160, cellH: 160 },
+        2: { posX: 934, posY: 510, serX: 1025, serY: 270, cellW: 160, cellH: 160 },
+        3: { posX: 44,  posY: 1690, serX: 135, serY: 1450, cellW: 160, cellH: 160 },
+        4: { posX: 934, posY: 1690, serX: 1025, serY: 1450, cellW: 160, cellH: 160 }
+    };
 
-
-    window.onload = () => {
+    window.onload = () =&gt; {
         const saved = localStorage.getItem('bingoSettingsIndividual');
         if (saved) {
             const data = JSON.parse(saved);
@@ -120,7 +119,7 @@ let cardsData = {
 
     function showCard(num) {
         currentEditingCard = num;
-        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num-1));
+        document.querySelectorAll('.tab').forEach((t, i) =&gt; t.classList.toggle('active', i === num-1));
         document.getElementById('cardLabel').innerText = `Ajustando Carta #${num}`;
         
         // Cargar valores al form
@@ -158,11 +157,11 @@ let cardsData = {
         localStorage.setItem('bingoSettingsIndividual', JSON.stringify(globalData));
     }
 
-    document.getElementById('imageInput').onchange = (e) => {
+    document.getElementById('imageInput').onchange = (e) =&gt; {
         const reader = new FileReader();
-        reader.onload = (ev) => {
+        reader.onload = (ev) =&gt; {
             baseImage.src = ev.target.result;
-            baseImage.onload = () => {
+            baseImage.onload = () =&gt; {
                 canvas.width = baseImage.width;
                 canvas.height = baseImage.height;
                 isImageLoaded = true;
@@ -172,12 +171,12 @@ let cardsData = {
         reader.readAsDataURL(e.target.files[0]);
     };
 
-    document.getElementById('fontInput').onchange = async (e) => {
+    document.getElementById('fontInput').onchange = async (e) =&gt; {
         const file = e.target.files[0];
         if (!file) return;
-        const fontName = "CustomBingo";
+        const fontName = &quot;CustomBingo&quot;;
         const reader = new FileReader();
-        reader.onload = async (ev) => {
+        reader.onload = async (ev) =&gt; {
             const myFont = new FontFace(fontName, ev.target.result);
             await myFont.load();
             document.fonts.add(myFont);
@@ -187,93 +186,94 @@ let cardsData = {
         reader.readAsArrayBuffer(file);
     };
 
-   function updatePreview() {
-    if (!isImageLoaded) return;
-    saveToStorage();
-    ctx.drawImage(baseImage, 0, 0);
-    
-    const styles = {
-        colorN: document.getElementById('colorNum').value,
-        colorS: document.getElementById('colorSerial').value,
-        sizeN: parseInt(document.getElementById('sizeNum').value),
-        sizeS: parseInt(document.getElementById('sizeSerial').value),
-        font: document.getElementById('fontFamily').value
-    };
+    function updatePreview() {
+        if (!isImageLoaded) return;
+        saveToStorage();
+        ctx.drawImage(baseImage, 0, 0);
+        
+        const styles = {
+            colorN: document.getElementById('colorNum').value,
+            colorS: document.getElementById('colorSerial').value,
+            sizeN: parseInt(document.getElementById('sizeNum').value),
+            sizeS: parseInt(document.getElementById('sizeSerial').value),
+            font: document.getElementById('fontFamily').value
+        };
 
-    // Dibuja todas las cartas
-    for (let i = 1; i <= 4; i++) {
-        drawCard(ctx, cardsData[i], styles);
-    }
-}
-
-function updateSerialPosition() {
-    const serX = parseInt(document.getElementById('serX').value);
-    const serY = parseInt(document.getElementById('serY').value);
-    cardsData[1].serX = serX; // Actualiza la posición del serial en la hoja
-    cardsData[1].serY = serY; // Actualiza la posición del serial en la hoja
-    updatePreview(); // Actualiza la vista previa
-}
-
-// Asegúrate de que los inputs para la posición del serial estén conectados
-document.getElementById('serX').oninput = updateSerialPosition;
-document.getElementById('serY').oninput = updateSerialPosition;
-
-    
-// Cambia la función drawCard para que solo dibuje un serial por hoja
-function drawCard(context, d, s) {
-    // Números
-    context.fillStyle = s.colorN;
-    context.font = `bold ${s.sizeN}px ${s.font}`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-
-    for (let c = 0; c < 5; c++) {
-        for (let r = 0; r < 5; r++) {
-            if (c === 2 && r === 2) continue; // Espacio libre
-            const px = d.posX + (c * d.cellW) + (d.cellW / 2);
-            const py = d.posY + (r * d.cellH) + (d.cellH / 2);
-            context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
+        for (let i = 1; i &lt;= 4; i++) {
+            drawCard(ctx, i, cardsData[i], styles);
         }
     }
-}
 
+    function drawCard(context, num, d, s) {
+        // Serial
+        context.fillStyle = s.colorS;
+        context.font = `bold ${s.sizeS}px ${s.font}`;
+        context.textAlign = &quot;left&quot;;
+        context.textBaseline = &quot;alphabetic&quot;;
+        context.fillText(&quot;#&quot; + num.toString().padStart(3, '0'), d.serX, d.serY);
 
-    // Modifica la función downloadPDF para que pase el serial correcto
-async function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
-    const pages = parseInt(document.getElementById('pageCount').value);
-    const styles = {
-        colorN: document.getElementById('colorNum').value,
-        colorS: document.getElementById('colorSerial').value,
-        sizeN: parseInt(document.getElementById('sizeNum').value),
-        sizeS: parseInt(document.getElementById('sizeSerial').value),
-        font: document.getElementById('fontFamily').value
-    };
-    
-    let serialCounter = 1; // Contador de seriales para la hoja
-    for (let p = 0; p < pages; p++) {
-        ctx.drawImage(baseImage, 0, 0);
-        // Solo se dibuja un serial para la hoja completa
-        drawRealCard(ctx, serialCounter, cardsData[1], styles); // Usar el mismo serial para todas las cartas de la hoja
-        serialCounter++; // Incrementar el serial para la próxima hoja
-        const data = canvas.toDataURL('image/jpeg', 0.8);
-        if (p > 0) pdf.addPage([baseImage.width, baseImage.height]);
-        pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
+        // Números
+        context.fillStyle = s.colorN;
+        context.font = `bold ${s.sizeN}px ${s.font}`;
+        context.textAlign = &quot;center&quot;;
+        context.textBaseline = &quot;middle&quot;;
+
+        for (let c = 0; c &lt; 5; c++) {
+            for (let r = 0; r &lt; 5; r++) {
+                if (c === 2 &amp;&amp; r === 2) continue;
+                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+                context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
+            }
+        }
     }
-    pdf.save("Bingo_Majo_Manual.pdf");
-}
-  // Cambia la función drawRealCard para que solo dibuje un serial por hoja
-function drawRealCard(context, serial, d, s) {
-    // Serial único para la hoja completa
-    context.fillStyle = s.colorS;
-    context.font = `bold ${s.sizeS}px ${s.font}`;
-    context.textAlign = "left";
-    context.fillText("T#" + serial.toString().padStart(3, '0'), d.serX, d.serY); // Serial solo para la hoja
 
-    // Llama a drawCard para dibujar los números
-    drawCard(context, d, s);
-}
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
+        const pages = parseInt(document.getElementById('pageCount').value);
+        const styles = {
+            colorN: document.getElementById('colorNum').value,
+            colorS: document.getElementById('colorSerial').value,
+            sizeN: parseInt(document.getElementById('sizeNum').value),
+            sizeS: parseInt(document.getElementById('sizeSerial').value),
+            font: document.getElementById('fontFamily').value
+        };
+        
+        let serialCounter = 1;
+        for (let p = 0; p &lt; pages; p++) {
+            ctx.drawImage(baseImage, 0, 0);
+            for (let i = 1; i &lt;= 4; i++) {
+                drawRealCard(ctx, serialCounter++, cardsData[i], styles);
+            }
+            const data = canvas.toDataURL('image/jpeg', 0.8);
+            if (p &gt; 0) pdf.addPage([baseImage.width, baseImage.height]);
+            pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
+        }
+        pdf.save(&quot;Bingo_Majo_Manual.pdf&quot;);
+    }
+
+    function drawRealCard(context, serial, d, s) {
+        context.fillStyle = s.colorS;
+        context.font = `bold ${s.sizeS}px ${s.font}`;
+        context.textAlign = &quot;left&quot;;
+        context.fillText(&quot;#&quot; + serial.toString().padStart(3, '0'), d.serX, d.serY);
+
+        context.fillStyle = s.colorN;
+        context.font = `bold ${s.sizeN}px ${s.font}`;
+        context.textAlign = &quot;center&quot;;
+        context.textBaseline = &quot;middle&quot;;
+
+        for (let c = 0; c &lt; 5; c++) {
+            let nums = Array.from({length: 15}, (_, i) =&gt; i + (c*15) + 1).sort(() =&gt; Math.random() - 0.5).slice(0, 5);
+            for (let r = 0; r &lt; 5; r++) {
+                if (c === 2 &amp;&amp; r === 2) continue;
+                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+                context.fillText(nums[r], px, py);
+            }
+        }
+    }
 
 
 </script>
