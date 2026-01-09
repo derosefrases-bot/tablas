@@ -96,14 +96,14 @@
     let currentEditingCard = 1;
 
     // Estructura de datos para las 4 cartas
-let cardsData = {
+    let cardsData = {
         1: { posX: 44,  posY: 510, serX: 135, serY: 270, cellW: 160, cellH: 160 },
         2: { posX: 934, posY: 510, serX: 1025, serY: 270, cellW: 160, cellH: 160 },
         3: { posX: 44,  posY: 1690, serX: 135, serY: 1450, cellW: 160, cellH: 160 },
         4: { posX: 934, posY: 1690, serX: 1025, serY: 1450, cellW: 160, cellH: 160 }
     };
 
-    window.onload = () =&gt; {
+    window.onload = () => {
         const saved = localStorage.getItem('bingoSettingsIndividual');
         if (saved) {
             const data = JSON.parse(saved);
@@ -119,7 +119,7 @@ let cardsData = {
 
     function showCard(num) {
         currentEditingCard = num;
-        document.querySelectorAll('.tab').forEach((t, i) =&gt; t.classList.toggle('active', i === num-1));
+        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num-1));
         document.getElementById('cardLabel').innerText = `Ajustando Carta #${num}`;
         
         // Cargar valores al form
@@ -157,11 +157,11 @@ let cardsData = {
         localStorage.setItem('bingoSettingsIndividual', JSON.stringify(globalData));
     }
 
-    document.getElementById('imageInput').onchange = (e) =&gt; {
+    document.getElementById('imageInput').onchange = (e) => {
         const reader = new FileReader();
-        reader.onload = (ev) =&gt; {
+        reader.onload = (ev) => {
             baseImage.src = ev.target.result;
-            baseImage.onload = () =&gt; {
+            baseImage.onload = () => {
                 canvas.width = baseImage.width;
                 canvas.height = baseImage.height;
                 isImageLoaded = true;
@@ -171,12 +171,12 @@ let cardsData = {
         reader.readAsDataURL(e.target.files[0]);
     };
 
-    document.getElementById('fontInput').onchange = async (e) =&gt; {
+    document.getElementById('fontInput').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const fontName = &quot;CustomBingo&quot;;
+        const fontName = "CustomBingo";
         const reader = new FileReader();
-        reader.onload = async (ev) =&gt; {
+        reader.onload = async (ev) => {
             const myFont = new FontFace(fontName, ev.target.result);
             await myFont.load();
             document.fonts.add(myFont);
@@ -199,7 +199,7 @@ let cardsData = {
             font: document.getElementById('fontFamily').value
         };
 
-        for (let i = 1; i &lt;= 4; i++) {
+        for (let i = 1; i <= 4; i++) {
             drawCard(ctx, i, cardsData[i], styles);
         }
     }
@@ -208,19 +208,19 @@ let cardsData = {
         // Serial
         context.fillStyle = s.colorS;
         context.font = `bold ${s.sizeS}px ${s.font}`;
-        context.textAlign = &quot;left&quot;;
-        context.textBaseline = &quot;alphabetic&quot;;
-        context.fillText(&quot;#&quot; + num.toString().padStart(3, '0'), d.serX, d.serY);
+        context.textAlign = "left";
+        context.textBaseline = "alphabetic";
+        context.fillText("#" + num.toString().padStart(3, '0'), d.serX, d.serY);
 
         // Números
         context.fillStyle = s.colorN;
         context.font = `bold ${s.sizeN}px ${s.font}`;
-        context.textAlign = &quot;center&quot;;
-        context.textBaseline = &quot;middle&quot;;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
 
-        for (let c = 0; c &lt; 5; c++) {
-            for (let r = 0; r &lt; 5; r++) {
-                if (c === 2 &amp;&amp; r === 2) continue;
+        for (let c = 0; c < 5; c++) {
+            for (let r = 0; r < 5; r++) {
+                if (c === 2 && r === 2) continue;
                 const px = d.posX + (c * d.cellW) + (d.cellW / 2);
                 const py = d.posY + (r * d.cellH) + (d.cellH / 2);
                 context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
@@ -241,41 +241,39 @@ let cardsData = {
         };
         
         let serialCounter = 1;
-        for (let p = 0; p &lt; pages; p++) {
+        for (let p = 0; p < pages; p++) {
             ctx.drawImage(baseImage, 0, 0);
-            for (let i = 1; i &lt;= 4; i++) {
+            for (let i = 1; i <= 4; i++) {
                 drawRealCard(ctx, serialCounter++, cardsData[i], styles);
             }
             const data = canvas.toDataURL('image/jpeg', 0.8);
-            if (p &gt; 0) pdf.addPage([baseImage.width, baseImage.height]);
+            if (p > 0) pdf.addPage([baseImage.width, baseImage.height]);
             pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
         }
-        pdf.save(&quot;Bingo_Majo_Manual.pdf&quot;);
+        pdf.save("Bingo_Majo_Manual.pdf");
     }
 
     function drawRealCard(context, serial, d, s) {
         context.fillStyle = s.colorS;
         context.font = `bold ${s.sizeS}px ${s.font}`;
-        context.textAlign = &quot;left&quot;;
-        context.fillText(&quot;#&quot; + serial.toString().padStart(3, '0'), d.serX, d.serY);
+        context.textAlign = "left";
+        context.fillText("#" + serial.toString().padStart(3, '0'), d.serX, d.serY);
 
         context.fillStyle = s.colorN;
         context.font = `bold ${s.sizeN}px ${s.font}`;
-        context.textAlign = &quot;center&quot;;
-        context.textBaseline = &quot;middle&quot;;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
 
-        for (let c = 0; c &lt; 5; c++) {
-            let nums = Array.from({length: 15}, (_, i) =&gt; i + (c*15) + 1).sort(() =&gt; Math.random() - 0.5).slice(0, 5);
-            for (let r = 0; r &lt; 5; r++) {
-                if (c === 2 &amp;&amp; r === 2) continue;
+        for (let c = 0; c < 5; c++) {
+            let nums = Array.from({length: 15}, (_, i) => i + (c*15) + 1).sort(() => Math.random() - 0.5).slice(0, 5);
+            for (let r = 0; r < 5; r++) {
+                if (c === 2 && r === 2) continue;
                 const px = d.posX + (c * d.cellW) + (d.cellW / 2);
                 const py = d.posY + (r * d.cellH) + (d.cellH / 2);
                 context.fillText(nums[r], px, py);
             }
         }
     }
-
-
 </script>
 </body>
 </html>
