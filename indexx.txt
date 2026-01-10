@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Bingo Majo - Editor de Tablas (T#)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --gold: #d4af37; --dark: #2c3e50; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--bg); height: 100vh; overflow: hidden; }
+        
+        /* Panel Lateral */
+        .sidebar { width: 400px; background: white; padding: 20px; box-shadow: 2px 0 15px rgba(0,0,0,0.1); overflow-y: auto; z-index: 10; }
+        h2 { color: var(--dark); border-bottom: 3px solid var(--gold); padding-bottom: 10px; margin-top: 0; font-size: 18px; }
+        
+        .tab-container { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 8px; font-size: 12px; background: #eee; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .tab.active { background: var(--gold); color: white; }
+
+        .section-title { font-size: 12px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin: 15px 0 5px 0; border-top: 1px solid #eee; padding-top: 10px; }
+        .control-group { background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid #eaeaea; margin-bottom: 10px; }
+        label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; color: #666; }
+        input[type="number"], input[type="text"], input[type="file"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; }
+        .pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .preview-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #333; overflow: auto; }
+        canvas { box-shadow: 0 0 30px rgba(0,0,0,0.5); background: white; max-width: 95%; max-height: 95%; }
+        
+        .btn-pdf { background: #27ae60; color: white; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 10px; }
+        #status { font-size: 12px; color: #e67e22; font-weight: bold; margin-top: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Configuración Bingo Majo (Tablas)</h2>
+    
+    <div class="control-group">
+        <label>🖼️ 1. Plantilla e Imagen</label>
+        <input type="file" id="imageInput" accept="image/*">
+        <label style="margin-top:10px;">🔠 Fuente (.ttf/.otf)</label>
+        <input type="file" id="fontInput" accept=".ttf, .otf">
+        <input type="text" id="fontFamily" value="Arial" oninput="updatePreview()" style="margin-top:5px">
+    </div>
+
+    <div class="section-title">Estilo Global</div>
+    <div class="control-group">
+        <div class="pos-grid">
+            <div><label>Color Núm:</label><input type="color" id="colorNum" value="#000000" oninput="updatePreview()"></div>
+            <div><label>Color Serial:</label><input type="color" id="colorSerial" value="#ff0000" oninput="updatePreview()"></div>
+            <div><label>Tmaño Núm:</label><input type="number" id="sizeNum" value="85" oninput="updatePreview()"></div>
+            <div><label>Tmaño Serial:</label><input type="number" id="sizeSerial" value="60" oninput="updatePreview()"></div>
+        </div>
+    </div>
+
+    <div class="section-title">Posición Serial Tabla (T#)</div>
+    <div class="control-group">
+        <label>Ubicación del identificador de la hoja (Ej: T#001)</label>
+        <div class="pos-grid">
+            <div><label>X Tabla:</label><input type="number" id="tableX" value="100" oninput="updatePreview()"></div>
+            <div><label>Y Tabla:</label><input type="number" id="tableY" value="100" oninput="updatePreview()"></div>
+        </div>
+    </div>
+
+    <div class="section-title">Ajuste de Cartas (Solo Números)</div>
+    <div class="tab-container">
+        <button class="tab active" onclick="showCard(1)">CARTA 1</button>
+        <button class="tab" onclick="showCard(2)">CARTA 2</button>
+        <button class="tab" onclick="showCard(3)">CARTA 3</button>
+        <button class="tab" onclick="showCard(4)">CARTA 4</button>
+    </div>
+
+    <div id="cardEditor">
+        <div class="control-group">
+            <label id="cardLabel">Ajustando Carta #1</label>
+            <div class="pos-grid">
+                <div><label>X Números:</label><input type="number" id="posX" oninput="updateCardData()"></div>
+                <div><label>Y Números:</label><input type="number" id="posY" oninput="updateCardData()"></div>
+                </div>
+            <div class="pos-grid" style="margin-top:10px">
+                <div><label>Ancho Celda:</label><input type="number" id="cellW" oninput="updateCardData()"></div>
+                <div><label>Alto Celda:</label><input type="number" id="cellH" oninput="updateCardData()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Producción</div>
+    <label>Cantidad de Tablas (Hojas):</label>
+    <input type="number" id="pageCount" value="1" min="1">
+    <button class="btn-pdf" onclick="downloadPDF()">GENERAR PDF TABLAS</button>
+    <div id="status"></div>
+</div>
+
+<div class="preview-area">
+    <canvas id="mainCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let baseImage = new Image();
+    let isImageLoaded = false;
+    let currentEditingCard = 1;
+
+    // Estructura de datos para las 4 cartas (Ya no necesitamos serX/serY aquí)
+    let cardsData = {
+        1: { posX: 44,  posY: 510, cellW: 160, cellH: 160 },
+        2: { posX: 934, posY: 510, cellW: 160, cellH: 160 },
+        3: { posX: 44,  posY: 1690, cellW: 160, cellH: 160 },
+        4: { posX: 934, posY: 1690, cellW: 160, cellH: 160 }
+    };
+
+    // Estructura para el Serial de la Tabla
+    let tableSerialPos = { x: 150, y: 150 };
+
+    window.onload = () => {
+        const saved = localStorage.getItem('bingoSettingsTable');
+        if (saved) {
+            const data = JSON.parse(saved);
+            cardsData = data.cardsData || cardsData;
+            tableSerialPos = data.tableSerialPos || tableSerialPos;
+            
+            document.getElementById('colorNum').value = data.colorNum;
+            document.getElementById('colorSerial').value = data.colorSerial;
+            document.getElementById('sizeNum').value = data.sizeNum;
+            document.getElementById('sizeSerial').value = data.sizeSerial;
+            document.getElementById('fontFamily').value = data.fontFamily;
+        }
+        
+        // Cargar posición del serial de tabla
+        document.getElementById('tableX').value = tableSerialPos.x;
+        document.getElementById('tableY').value = tableSerialPos.y;
+
+        showCard(1);
+    };
+
+    function showCard(num) {
+        currentEditingCard = num;
+        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num-1));
+        document.getElementById('cardLabel').innerText = `Ajustando Carta #${num}`;
+        
+        const d = cardsData[num];
+        document.getElementById('posX').value = d.posX;
+        document.getElementById('posY').value = d.posY;
+        document.getElementById('cellW').value = d.cellW;
+        document.getElementById('cellH').value = d.cellH;
+        updatePreview();
+    }
+
+    function updateCardData() {
+        cardsData[currentEditingCard] = {
+            posX: parseInt(document.getElementById('posX').value),
+            posY: parseInt(document.getElementById('posY').value),
+            cellW: parseInt(document.getElementById('cellW').value),
+            cellH: parseInt(document.getElementById('cellH').value)
+        };
+        updatePreview();
+    }
+
+    function saveToStorage() {
+        // Actualizar posición de tabla desde inputs antes de guardar
+        tableSerialPos.x = parseInt(document.getElementById('tableX').value);
+        tableSerialPos.y = parseInt(document.getElementById('tableY').value);
+
+        const globalData = {
+            cardsData,
+            tableSerialPos,
+            colorNum: document.getElementById('colorNum').value,
+            colorSerial: document.getElementById('colorSerial').value,
+            sizeNum: document.getElementById('sizeNum').value,
+            sizeSerial: document.getElementById('sizeSerial').value,
+            fontFamily: document.getElementById('fontFamily').value
+        };
+        localStorage.setItem('bingoSettingsTable', JSON.stringify(globalData));
+    }
+
+    document.getElementById('imageInput').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            baseImage.src = ev.target.result;
+            baseImage.onload = () => {
+                canvas.width = baseImage.width;
+                canvas.height = baseImage.height;
+                isImageLoaded = true;
+                updatePreview();
+            };
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    document.getElementById('fontInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const fontName = "CustomBingo";
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const myFont = new FontFace(fontName, ev.target.result);
+            await myFont.load();
+            document.fonts.add(myFont);
+            document.getElementById('fontFamily').value = fontName;
+            updatePreview();
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    function updatePreview() {
+        if (!isImageLoaded) return;
+        saveToStorage(); // Guarda estados (incluido X/Y tabla)
+        
+        ctx.drawImage(baseImage, 0, 0);
+        
+        const styles = {
+            colorN: document.getElementById('colorNum').value,
+            colorS: document.getElementById('colorSerial').value,
+            sizeN: parseInt(document.getElementById('sizeNum').value),
+            sizeS: parseInt(document.getElementById('sizeSerial').value),
+            font: document.getElementById('fontFamily').value
+        };
+
+        // 1. Dibujar el Serial de la TABLA (Solo uno por hoja)
+        drawTableSerial(ctx, 1, styles);
+
+        // 2. Dibujar las 4 cartas (Solo números)
+        for (let i = 1; i <= 4; i++) {
+            drawCardNumbers(ctx, i, cardsData[i], styles);
+        }
+    }
+
+    // Dibuja el serial único de la hoja (Ej: T#001)
+    function drawTableSerial(context, serialNum, s) {
+        const x = parseInt(document.getElementById('tableX').value);
+        const y = parseInt(document.getElementById('tableY').value);
+
+        context.fillStyle = s.colorS;
+        context.font = `bold ${s.sizeS}px ${s.font}`;
+        context.textAlign = "left"; // O center, según prefieras
+        context.textBaseline = "alphabetic";
+        context.fillText("T#" + serialNum.toString().padStart(3, '0'), x, y);
+    }
+
+    // Dibuja solo los números de una carta
+    function drawCardNumbers(context, cardIndex, d, s) {
+        context.fillStyle = s.colorN;
+        context.font = `bold ${s.sizeN}px ${s.font}`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+
+        for (let c = 0; c < 5; c++) {
+            for (let r = 0; r < 5; r++) {
+                if (c === 2 && r === 2) continue; // Centro libre
+                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+                context.fillText(Math.floor(Math.random() * 15) + (c * 15) + 1, px, py);
+            }
+        }
+    }
+
+    async function downloadPDF() {
+        if (!isImageLoaded) {
+            alert("Carga una imagen primero");
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
+        const pages = parseInt(document.getElementById('pageCount').value);
+        const styles = {
+            colorN: document.getElementById('colorNum').value,
+            colorS: document.getElementById('colorSerial').value,
+            sizeN: parseInt(document.getElementById('sizeNum').value),
+            sizeS: parseInt(document.getElementById('sizeSerial').value),
+            font: document.getElementById('fontFamily').value
+        };
+        
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = "Generando PDF...";
+
+        // Bucle de PÁGINAS (Tablas)
+        for (let p = 1; p <= pages; p++) {
+            ctx.drawImage(baseImage, 0, 0);
+            
+            // 1. Dibujar el serial de ESTA tabla (T#001, T#002...)
+            drawTableSerial(ctx, p, styles);
+
+            // 2. Dibujar las 4 cartas con números aleatorios reales
+            for (let i = 1; i <= 4; i++) {
+                generateRealNumbers(ctx, cardsData[i], styles);
+            }
+
+            const data = canvas.toDataURL('image/jpeg', 0.8);
+            if (p > 1) pdf.addPage([baseImage.width, baseImage.height]);
+            pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
+            
+            statusDiv.innerText = `Procesando Tabla ${p} de ${pages}...`;
+            // Pequeña pausa para que la UI respire
+            await new Promise(r => setTimeout(r, 10));
+        }
+        
+        pdf.save("Bingo_Tablas_Majo.pdf");
+        statusDiv.innerText = "¡PDF Descargado!";
+        updatePreview(); // Restaurar vista previa
+    }
+
+    function generateRealNumbers(context, d, s) {
+        context.fillStyle = s.colorN;
+        context.font = `bold ${s.sizeN}px ${s.font}`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+
+        for (let c = 0; c < 5; c++) {
+            // Generar columna B, I, N, G, O sin repetidos
+            let nums = Array.from({length: 15}, (_, i) => i + (c*15) + 1).sort(() => Math.random() - 0.5).slice(0, 5);
+            for (let r = 0; r < 5; r++) {
+                if (c === 2 && r === 2) continue;
+                const px = d.posX + (c * d.cellW) + (d.cellW / 2);
+                const py = d.posY + (r * d.cellH) + (d.cellH / 2);
+                context.fillText(nums[r], px, py);
+            }
+        }
+    }
+</script>
+</body>
+</html>
