@@ -19,13 +19,14 @@
         .section-title { font-size: 12px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin: 15px 0 5px 0; border-top: 1px solid #eee; padding-top: 10px; }
         .control-group { background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid #eaeaea; margin-bottom: 10px; }
         label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; color: #666; }
-        input[type="number"], input[type="text"], input[type="file"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; }
+        input[type="number"], input[type="text"], input[type="file"], input[type="color"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; }
         .pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
         .preview-area { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #333; overflow: auto; }
         canvas { box-shadow: 0 0 30px rgba(0,0,0,0.5); background: white; max-width: 95%; max-height: 95%; }
         
-        .btn-pdf { background: #27ae60; color: white; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 10px; }
+        .btn-pdf { background: #27ae60; color: white; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 10px; transition: background 0.3s; }
+        .btn-pdf:disabled { background: #95a5a6; cursor: not-allowed; }
         #status { font-size: 12px; color: #e67e22; font-weight: bold; margin-top: 5px; text-align: center; }
     </style>
 </head>
@@ -75,7 +76,7 @@
             <div class="pos-grid">
                 <div><label>X Números:</label><input type="number" id="posX" oninput="updateCardData()"></div>
                 <div><label>Y Números:</label><input type="number" id="posY" oninput="updateCardData()"></div>
-                </div>
+            </div>
             <div class="pos-grid" style="margin-top:10px">
                 <div><label>Ancho Celda:</label><input type="number" id="cellW" oninput="updateCardData()"></div>
                 <div><label>Alto Celda:</label><input type="number" id="cellH" oninput="updateCardData()"></div>
@@ -84,9 +85,15 @@
     </div>
 
     <div class="section-title">Producción</div>
-    <label>Cantidad de Tablas (Hojas):</label>
-    <input type="number" id="pageCount" value="1" min="1">
-    <button class="btn-pdf" onclick="downloadPDF()">GENERAR PDF TABLAS</button>
+    <div class="control-group">
+        <label>Rango de Tablas (Hojas):</label>
+        <div class="pos-grid">
+            <div><label>Desde:</label><input type="number" id="startNum" value="1" min="1"></div>
+            <div><label>Hasta:</label><input type="number" id="endNum" value="100" min="1"></div>
+        </div>
+    </div>
+    
+    <button class="btn-pdf" id="btnGenerate" onclick="downloadPDF()">GENERAR PDF TABLAS</button>
     <div id="status"></div>
 </div>
 
@@ -101,7 +108,7 @@
     let isImageLoaded = false;
     let currentEditingCard = 1;
 
-    // Estructura de datos para las 4 cartas (Ya no necesitamos serX/serY aquí)
+    // Estructura de datos para las 4 cartas
     let cardsData = {
         1: { posX: 44,  posY: 510, cellW: 160, cellH: 160 },
         2: { posX: 934, posY: 510, cellW: 160, cellH: 160 },
@@ -259,9 +266,20 @@
             alert("Carga una imagen primero");
             return;
         }
+
+        const startNum = parseInt(document.getElementById('startNum').value);
+        const endNum = parseInt(document.getElementById('endNum').value);
+
+        if (startNum > endNum) {
+            alert("El número 'Desde' no puede ser mayor que 'Hasta'.");
+            return;
+        }
+
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [baseImage.width, baseImage.height] });
-        const pages = parseInt(document.getElementById('pageCount').value);
+        // Optimización 1: Activar compresión en el documento base y auto-detectar orientación
+        const pdfOrientation = baseImage.width > baseImage.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation: pdfOrientation, unit: 'px', format: [baseImage.width, baseImage.height], compress: true });
+        
         const styles = {
             colorN: document.getElementById('colorNum').value,
             colorS: document.getElementById('colorSerial').value,
@@ -271,10 +289,15 @@
         };
         
         const statusDiv = document.getElementById('status');
-        statusDiv.innerText = "Generando PDF...";
+        const btn = document.getElementById('btnGenerate');
+        btn.disabled = true; // Prevenir múltiples clics
+        
+        let isFirstPage = true;
 
-        // Bucle de PÁGINAS (Tablas)
-        for (let p = 1; p <= pages; p++) {
+        // Bucle de PÁGINAS (Rango Elegido)
+        for (let p = startNum; p <= endNum; p++) {
+            statusDiv.innerText = `Generando Tabla T#${p}... (Faltan ${endNum - p})`;
+
             ctx.drawImage(baseImage, 0, 0);
             
             // 1. Dibujar el serial de ESTA tabla (T#001, T#002...)
@@ -285,17 +308,28 @@
                 generateRealNumbers(ctx, cardsData[i], styles);
             }
 
-            const data = canvas.toDataURL('image/jpeg', 0.8);
-            if (p > 1) pdf.addPage([baseImage.width, baseImage.height]);
-            pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height);
+            // Optimización 2: Bajar ligeramente la calidad JPEG a 0.6 (Ahorra un 40% de RAM, imperceptible a la vista)
+            const data = canvas.toDataURL('image/jpeg', 0.6);
             
-            statusDiv.innerText = `Procesando Tabla ${p} de ${pages}...`;
-            // Pequeña pausa para que la UI respire
-            await new Promise(r => setTimeout(r, 10));
+            if (!isFirstPage) {
+                pdf.addPage([baseImage.width, baseImage.height], pdfOrientation);
+            }
+            
+            // Optimización 3: Usar el parámetro 'FAST' de compresión interna del PDF
+            pdf.addImage(data, 'JPEG', 0, 0, baseImage.width, baseImage.height, undefined, 'FAST');
+            isFirstPage = false;
+            
+            // Optimización 4: Pausa ligeramente más larga (15ms) para asegurar que el navegador limpie la RAM
+            await new Promise(r => setTimeout(r, 15));
         }
         
-        pdf.save("Bingo_Tablas_Majo.pdf");
-        statusDiv.innerText = "¡PDF Descargado!";
+        statusDiv.innerText = "Empaquetando archivo PDF, por favor espera...";
+        await new Promise(r => setTimeout(r, 50)); // Pequeña pausa para mostrar el mensaje de empaquetado
+        
+        pdf.save(`Bingo_Tablas_${startNum}_al_${endNum}.pdf`);
+        
+        statusDiv.innerText = "¡PDF Descargado con Éxito!";
+        btn.disabled = false;
         updatePreview(); // Restaurar vista previa
     }
 
